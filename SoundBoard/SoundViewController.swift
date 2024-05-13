@@ -7,16 +7,24 @@
 
 import UIKit
 import AVFoundation
+import CoreData
 
 class SoundViewController: UIViewController {
     @IBOutlet weak var grabarButton: UIButton!
     @IBOutlet weak var reproducirButton: UIButton!
     @IBOutlet weak var nombreTextField: UITextField!
     @IBOutlet weak var agregarButton: UIButton!
+    @IBOutlet weak var lblTiempo: UILabel!
+    
     
     var grabarAudio:AVAudioRecorder?
     var reproducirAudio:AVAudioPlayer?
     var audioURL:URL?
+    var audio2 = AVAudioPlayer()
+    var startTime: Date?
+    var timer: Timer?
+    var tiempoTranscurrido: String = ""
+    var isTimerRunning = false
     
     @IBAction func grabarTapped(_ sender: Any) {
         if grabarAudio!.isRecording{
@@ -24,10 +32,15 @@ class SoundViewController: UIViewController {
             grabarButton.setTitle("GRABAR", for: .normal)
             reproducirButton.isEnabled = true
             agregarButton.isEnabled = true
+            
+            print("\(startTime!) + aa \(tiempoTranscurrido)")
+            stopTimer()
+            
         }else{
             grabarAudio?.record()
             grabarButton.setTitle("DETENER", for: .normal)
             reproducirButton.isEnabled = false
+            startTimer()
         }
     }
     
@@ -45,9 +58,18 @@ class SoundViewController: UIViewController {
         let grabacion = Grabacion(context: context)
         grabacion.nombre = nombreTextField.text
         grabacion.audio = NSData(contentsOf: audioURL!)! as Data
+        grabacion.duracion = self.tiempoTranscurrido
         (UIApplication.shared.delegate as! AppDelegate).saveContext()
         navigationController!.popViewController(animated: true)
     }
+    
+    @IBAction func volumeSlider(_ sender: UISlider) {
+        print(sender.value)
+        
+        reproducirAudio?.volume = sender.value
+    }
+    
+    
     
     
     override func viewDidLoad() {
@@ -55,6 +77,30 @@ class SoundViewController: UIViewController {
         configurarGrabacion()
         reproducirButton.isEnabled = false
         agregarButton.isEnabled = false
+        
+    }
+    
+    func startTimer() {
+        startTime = Date()
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+            guard let startTime = self.startTime else { return }
+            let currentTime = Date().timeIntervalSince(startTime)
+            let minutes = Int(currentTime) / 60
+            let seconds = Int(currentTime) % 60
+            self.lblTiempo?.text = String(format: "%02d:%02d", minutes, seconds)
+            self.tiempoTranscurrido = String(format: "%02d:%02d", minutes, seconds)
+        }
+        isTimerRunning = true
+    }
+    
+    
+    func stopTimer() {
+        
+            timer?.invalidate() // Detiene el temporizador
+            timer = nil
+            isTimerRunning = false
+        
+
     }
     
     
